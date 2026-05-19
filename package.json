@@ -15,14 +15,9 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@lexical/code": "^0.44.0",
-    "@lexical/hashtag": "^0.44.0",
     "@lexical/history": "^0.44.0",
-    "@lexical/list": "^0.44.0",
-    "@lexical/markdown": "^0.44.0",
     "@lexical/react": "^0.44.0",
     "@lexical/rich-text": "^0.44.0",
-    "@lexical/table": "^0.44.0",
     "fast-equals": "^6.0.0",
     "lexical": "^0.44.0",
     "material-icons": "^1.13.14",

@@ -17,14 +17,16 @@ export default defineConfig({
           name: rootPkg.name,
           version: rootPkg.version,
           type: 'module',
-          main: `${LIB_NAME}.cjs`,
-          module: `${LIB_NAME}.mjs`,
-          types: 'src/Editor/index.d.ts',
           exports: {
             '.': {
               import: `./${LIB_NAME}.mjs`,
               require: `./${LIB_NAME}.cjs`,
               type: './src/Editor/index.d.ts',
+            },
+            './variable-serialization': {
+              import: `./variable-serialization.mjs`,
+              require: `./variable-serialization.cjs`,
+              types: './src/nodes/VariableSerialization.d.ts',
             },
             './style.css': `./style.css`,
           },
@@ -34,6 +36,15 @@ export default defineConfig({
           },
           repository: {
             url: 'https://github.com/wszgrcy/shb-lexical-textarea',
+          },
+          peerDependencies: {
+            '@lexical/history': '^0.44.0',
+            '@lexical/react': '^0.44.0',
+            '@lexical/rich-text': '^0.44.0',
+            'fast-equals': '^6.0.0',
+            lexical: '^0.44.0',
+            react: '^19.0.0',
+            'react-dom': '^19.0.0',
           },
         };
         fs.writeFileSync(
@@ -50,14 +61,17 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, 'src/Editor/index.ts'),
         style: resolve(__dirname, 'src/Editor/Editor.css'),
+        'variable-serialization': resolve(
+          __dirname,
+          'src/nodes/VariableSerialization.tsx',
+        ),
       },
       formats: ['es', 'cjs'],
-      fileName: (format) => `${LIB_NAME}.${format === 'es' ? 'mjs' : 'cjs'}`,
+      fileName: (format, entryName) => {
+        return `${entryName}.${format === 'es' ? 'mjs' : 'cjs'}`;
+      },
     },
     rolldownOptions: {
-      // output: {
-      //   assetFileNames: () => 'lexical-editor.css',
-      // },
       external: (id, pid, isResolved) => {
         if (!isResolved) {
           return !id.startsWith('.');
