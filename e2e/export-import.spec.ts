@@ -24,7 +24,9 @@ test.describe('Export/Import E2E Tests', () => {
     const menu = page.locator('.typeahead-menu');
     await expect(menu).toBeVisible({ timeout: 5000 });
 
-    const userIdOption = menu.locator('.typeahead-item').first();
+    // Select the specific 'userId' option, not the dynamic option
+    const userIdOption = menu.locator('.typeahead-item').filter({ hasText: /^userId$/ });
+    await expect(userIdOption).toBeVisible();
     await userIdOption.click({ force: true });
     await page.waitForTimeout(3000);
 
@@ -152,7 +154,8 @@ test.describe('Export/Import E2E Tests', () => {
     await page.waitForTimeout(1000);
     const menu = page.locator('.typeahead-menu');
     await expect(menu).toBeVisible({ timeout: 5000 });
-    const userIdOption = menu.locator('.typeahead-item').first();
+    // Select userId specifically
+    const userIdOption = menu.locator('.typeahead-item').filter({ hasText: /^userId$/ });
     if (await userIdOption.count() > 0) {
       await userIdOption.click({ force: true });
     }
@@ -167,12 +170,12 @@ test.describe('Export/Import E2E Tests', () => {
     await page.waitForTimeout(1000);
     const menu2 = page.locator('.typeahead-menu');
     await expect(menu2).toBeVisible({ timeout: 5000 });
-    // Filter to get userName
-    await page.keyboard.type('name');
+    // Type 'userName' to filter and select it specifically
+    await page.keyboard.type('userName');
     await page.waitForTimeout(500);
-    const options = menu2.locator('.typeahead-item');
-    if (await options.count() > 0) {
-      await options.first().click({ force: true });
+    const userNameOption = menu2.locator('.typeahead-item').filter({ hasText: /^userName$/ });
+    if (await userNameOption.count() > 0) {
+      await userNameOption.click({ force: true });
     }
     await page.waitForTimeout(8000);
 

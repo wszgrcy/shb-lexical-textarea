@@ -26,7 +26,16 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 export interface VariableEntry {
   label: string;
   value: (number | string)[];
+  type?: string;
 }
+
+/** Type for the dynamically created "new variable" option. */
+export type CustomVariableEntry = {
+  label: string;
+  value: (number | string)[];
+  type: 'custom';
+  isDynamic: true;
+};
 
 /** Signature for a custom variable filter function.
  * Receives the current query string (non-null) and the full variables list,
@@ -52,11 +61,13 @@ interface VariablePluginProps {
 class VariableOption extends MenuOption {
   label: string;
   item: VariableItem;
+  isDynamic?: boolean;
 
-  constructor(label: string, item: VariableItem) {
+  constructor(label: string, item: VariableItem, isDynamic?: boolean) {
     super(label);
     this.label = label;
     this.item = item;
+    this.isDynamic = isDynamic;
   }
 }
 
@@ -92,6 +103,11 @@ function MissingVariableChecker({ variables }: { variables: VariableEntry[] }) {
 
       const traverse = (node: LexicalNode): void => {
         if ($isVariableNode(node)) {
+          // Skip custom variables - they are dynamically created and should never be marked as missing
+          const item = node.getItem();
+          if (item.type === 'custom') {
+            return;
+          }
           const valueKey = node.getValueKey();
           const shouldBeMissing = !knownKeys.has(valueKey);
           // Only setMissing when the state actually changes to prevent infinite loops
@@ -146,7 +162,17 @@ function entryLabel(entry: VariableEntry): string {
 
 /** Extract item from a variable entry. */
 function entryItem(entry: VariableEntry): VariableItem {
-  return { label: entry.label, value: entry.value };
+  return { label: entry.label, value: entry.value, type: entry.type };
+}
+
+/** Create a dynamic variable entry from query. */
+function createDynamicEntry(query: string): CustomVariableEntry {
+  return {
+    label: query,
+    value: [query],
+    type: 'custom',
+    isDynamic: true,
+  };
 }
 export default function VariablePlugin({
   variables,
@@ -163,14 +189,30 @@ export default function VariablePlugin({
       );
     }
     // Use custom filter if provided, otherwise fall back to default label-based filtering
-    const filtered = variableFilter
+    let filtered = variableFilter
       ? variableFilter(queryString, variables)
       : variables.filter((entry) =>
           entryLabel(entry).toLowerCase().includes(queryString.toLowerCase()),
         );
-    return filtered.map(
+
+    const dynamicOptions: VariableOption[] = filtered.map(
       (entry) => new VariableOption(entryLabel(entry), entryItem(entry)),
     );
+
+    const dynamicEntry = createDynamicEntry(queryString);
+    dynamicOptions.unshift(
+      new VariableOption(
+        dynamicEntry.label,
+        {
+          label: dynamicEntry.label,
+          value: dynamicEntry.value,
+          type: dynamicEntry.type,
+        },
+        true,
+      ),
+    );
+
+    return dynamicOptions;
   }, [queryString, variables, variableFilter]);
 
   // Callback invoked when a variable option is selected from the menu.
@@ -258,29 +300,33 @@ export default function VariablePlugin({
 
           return createPortal(
             <ul className="typeahead-menu variable-menu">
-              {menuOptions.map((option, index) => (
-                <li
-                  key={option.key}
-                  id={`typeahead-item-${index}`}
-                  ref={option.setRefElement}
-                  tabIndex={-1}
-                  role="option"
-                  aria-selected={selectedIndex === index}
-                  className={
-                    selectedIndex === index
-                      ? 'typeahead-item selected'
-                      : 'typeahead-item'
-                  }
-                  onClick={() => {
-                    selectOptionAndCleanUp(option);
-                  }}
-                  onMouseEnter={() => {
-                    setHighlightedIndex(index);
-                  }}
-                >
-                  <span>{option.label}</span>
-                </li>
-              ))}
+              {menuOptions.map((option, index) => {
+                const isDynamic = option.isDynamic === true;
+                return (
+                  <li
+                    key={option.key}
+                    id={`typeahead-item-${index}`}
+                    ref={option.setRefElement}
+                    tabIndex={-1}
+                    role="option"
+                    aria-selected={selectedIndex === index}
+                    className={`typeahead-item ${
+                      selectedIndex === index ? 'selected' : ''
+                    } ${isDynamic ? 'dynamic-option' : ''}`}
+                    onClick={() => {
+                      selectOptionAndCleanUp(option);
+                    }}
+                    onMouseEnter={() => {
+                      setHighlightedIndex(index);
+                    }}
+                  >
+                    <span className="option-label">{option.label}</span>
+                    {isDynamic && (
+                      <span className="dynamic-badge">+ 新建变量</span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>,
             anchorRef.current,
           );

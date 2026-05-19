@@ -30,6 +30,18 @@ export interface PlainTextOptions {
 }
 
 /**
+ * Represents a found variable node in the serialized state.
+ */
+export interface FoundVariable {
+  /** The variable's label */
+  label: string;
+  /** The variable's value array */
+  value: (number | string)[];
+  /** The variable's type, if present */
+  type?: string;
+}
+
+/**
  * Signature for a custom variable resolver function.
  * Receives the serialized VariableItem (with its `type`, `label`, and `value`)
  * and returns the string to use as the resolved output.
@@ -66,6 +78,60 @@ export function serializeTemplate(
   }
 
   return result;
+}
+
+/**
+ * Find all variable nodes of type 'custom' in a serialized Lexical state.
+ *
+ * @param state - The serialized Lexical editor state.
+ * @returns An array of found custom variable nodes.
+ */
+export function findCustomVariables(
+  state: SerializedEditorState<SerializedLexicalNode>,
+): FoundVariable[] {
+  const results: FoundVariable[] = [];
+
+  const rootData = (state as any).root;
+  if (!rootData || !Array.isArray(rootData.children)) return results;
+
+  for (const childData of rootData.children) {
+    if (typeof childData !== 'object' || childData === null) continue;
+    findCustomVariablesInNode(childData, results);
+  }
+
+  return results;
+}
+
+/**
+ * Recursively search for custom variable nodes within a serialized node.
+ */
+function findCustomVariablesInNode(
+  node: { [key: string]: unknown },
+  results: FoundVariable[],
+): void {
+  if (!node || typeof node !== 'object') return;
+
+  const type = node.type as string;
+
+  // Check if this is a VariableNode with type === 'custom'
+  if (type === 'variable' && node.item) {
+    const item = node.item as { label: string; value: (number | string)[]; type?: string };
+    if (item.type === 'custom') {
+      results.push({
+        label: item.label,
+        value: item.value,
+        type: item.type,
+      });
+    }
+  }
+
+  // Recurse into children for ElementNode or Root
+  const children = Array.isArray(node.children) ? node.children : (node as any).children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      findCustomVariablesInNode(child as { [key: string]: unknown }, results);
+    }
+  }
 }
 
 /**

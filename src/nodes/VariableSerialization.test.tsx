@@ -3,7 +3,7 @@ import {
   type SerializedEditorState,
   type SerializedLexicalNode,
 } from 'lexical';
-import { serializeTemplate } from './VariableSerialization';
+import { serializeTemplate, findCustomVariables } from './VariableSerialization';
 
 const demoContext: { [key: string]: string } = {
   userId: 'user-123',
@@ -124,9 +124,114 @@ describe('VariableSerialization', () => {
     });
 
     it('should handle empty state', () => {
-      const state: SerializedEditorState<SerializedLexicalNode> = { root: {} };
-      const result = serializeTemplate(state, () => 'resolver');
+      const state = { root: { type: 'root', version: 1 } };
+      const result = serializeTemplate(state as SerializedEditorState<SerializedLexicalNode>, () => 'resolver');
       expect(result).toBe('');
+    });
+  });
+
+  describe('findCustomVariables', () => {
+    function createSerializedState(
+      variableItems: {
+        label: string;
+        value: (number | string)[];
+        type?: string;
+      }[],
+    ): SerializedEditorState<SerializedLexicalNode> {
+      return {
+        root: {
+          type: 'root',
+          children: variableItems.map((item) => ({
+            type: 'paragraph',
+            children: [{ type: 'variable', version: 1, item, key: 'mock-key' }],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            version: 1,
+            key: `mock-key-${item.label}`,
+          })),
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      };
+    }
+
+    it('should find custom type variables', () => {
+      const state = createSerializedState([
+        { label: 'customVar1', value: ['field1'], type: 'custom' },
+        { label: 'normalVar', value: ['userId'] },
+      ]);
+      const result = findCustomVariables(state);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({ label: 'customVar1', value: ['field1'], type: 'custom' });
+    });
+
+    it('should find multiple custom type variables', () => {
+      const state = createSerializedState([
+        { label: 'custom1', value: ['a'], type: 'custom' },
+        { label: 'normal1', value: ['userId'] },
+        { label: 'custom2', value: ['b'], type: 'custom' },
+        { label: 'normal2', value: ['userName'] },
+      ]);
+      const result = findCustomVariables(state);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ label: 'custom1', value: ['a'], type: 'custom' });
+      expect(result[1]).toEqual({ label: 'custom2', value: ['b'], type: 'custom' });
+    });
+
+    it('should return empty array when no custom variables', () => {
+      const state = createSerializedState([
+        { label: 'normalVar', value: ['userId'] },
+        { label: 'otherVar', value: ['userName'], type: 'text' },
+      ]);
+      const result = findCustomVariables(state);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return empty array for empty state', () => {
+      const state = { root: { type: 'root', version: 1 } };
+      const result = findCustomVariables(state as SerializedEditorState<SerializedLexicalNode>);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle number values in custom variables', () => {
+      const state = createSerializedState([
+        { label: 'customCount', value: [123, 456], type: 'custom' },
+      ]);
+      const result = findCustomVariables(state);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({ label: 'customCount', value: [123, 456], type: 'custom' });
+    });
+
+    it('should recursively find custom variables in nested paragraphs', () => {
+      const state = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              format: '',
+              direction: 'ltr',
+              indent: 0,
+              version: 1,
+              key: 'p1',
+              children: [
+                { type: 'text', text: 'Hello ', version: 1, key: 'k1' },
+                { type: 'variable', version: 1, item: { label: 'customNested', value: ['nested'], type: 'custom' }, key: 'k2' },
+              ],
+            },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      };
+      const result = findCustomVariables(state as SerializedEditorState<SerializedLexicalNode>);
+      expect(result).toHaveLength(1);
+      expect(result[0].label).toBe('customNested');
     });
   });
 });

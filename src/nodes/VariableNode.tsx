@@ -41,6 +41,15 @@ function VariableComponent({
   item: VariableItem;
   isMissing: boolean;
 }) {
+  // Custom variables (type: 'custom') should never be marked as missing
+  if (item.type === 'custom') {
+    return (
+      <span className="variable-label variable-label-custom">
+        <span className="custom-icon">+</span>
+        <span>{item.label}</span>
+      </span>
+    );
+  }
   if (isMissing) {
     return (
       <span className="variable-label variable-label-missing">

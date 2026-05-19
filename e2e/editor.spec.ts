@@ -41,8 +41,9 @@ test.describe('Lexical Editor E2E Tests', () => {
     const menu = page.locator('.typeahead-menu');
     await expect(menu).toBeVisible({ timeout: 5000 });
 
-    // Click userId option (first matching option)
-    const userIdOption = page.locator('.typeahead-item').first();
+    // Click userId option (select the specific matching variable, not the dynamic option)
+    const userIdOption = menu.locator('.typeahead-item').filter({ hasText: /^userId$/ });
+    await expect(userIdOption).toBeVisible();
     await userIdOption.click({ force: true });
     await page.waitForTimeout(800);
 
@@ -70,7 +71,8 @@ test.describe('Lexical Editor E2E Tests', () => {
 
     const menu = page.locator('.typeahead-menu');
     await expect(menu).toBeVisible({ timeout: 5000 });
-    const userIdOption = menu.locator('.typeahead-item').first();
+    // Select the specific 'userId' option, not the dynamic option
+    const userIdOption = menu.locator('.typeahead-item').filter({ hasText: /^userId$/ });
     if (await userIdOption.count() > 0) {
       await userIdOption.click({ force: true });
     }
@@ -292,8 +294,8 @@ test.describe('Lexical Editor E2E Tests', () => {
     const menu = page.locator('.typeahead-menu');
     await expect(menu).toBeVisible({ timeout: 5000 });
 
-    // Select the first option (userId)
-    const userIdOption = menu.locator('.typeahead-item').first();
+    // Select the specific 'userId' option, not the dynamic option
+    const userIdOption = menu.locator('.typeahead-item').filter({ hasText: /^userId$/ });
     if (await userIdOption.count() > 0) {
       await userIdOption.click({ force: true });
     }
