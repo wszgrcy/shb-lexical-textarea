@@ -1,0 +1,210 @@
+/* Lexical Editor Styles - CSS variables for theming */
+
+:root {
+  /* Text colors */
+  --editor-text-color: #333;
+  --editor-placeholder-color: #999;
+
+  /* Border colors */
+  --editor-border-color: #d0d7de;
+  --editor-border-focus-color: #0969da;
+  --editor-border-missing-color: #ffc107;
+
+  /* Background colors */
+  --editor-bg-color: transparent;
+  --editor-highlight-bg: rgba(9, 105, 218, 0.08);
+  --editor-highlight-hover-bg: rgba(9, 105, 218, 0.15);
+  --editor-highlight-text-color: #0969da;
+  --editor-missing-bg: #fff3cd;
+  --editor-missing-text-color: #856404;
+
+  /* Focus shadow */
+  --editor-focus-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+
+  /* Typeahead menu */
+  --editor-menu-bg-color: #fff;
+  --editor-menu-border-color: #d0d7de;
+  --editor-menu-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  --editor-menu-item-text-color: #24292f;
+  --editor-menu-item-selected-bg: #eff6ff;
+  --editor-menu-item-hover-bg: #f5f5f5;
+
+  /* Dimensions */
+  --editor-font-size: 14px;
+  --editor-line-height: 1.5;
+  --editor-padding: 8px 12px;
+  --editor-border-radius: 6px;
+  --editor-min-height: 120px;
+}
+
+/* Dark mode automatic theming */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --editor-text-color: #c9d1d9;
+    --editor-border-color: #30363d;
+    --editor-border-focus-color: #58a6ff;
+    --editor-focus-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    --editor-menu-bg-color: #0d1117;
+    --editor-menu-border-color: #30363d;
+    --editor-menu-item-text-color: #c9d1d9;
+    --editor-menu-item-selected-bg: #1f2937;
+    --editor-missing-bg: #3d2e00;
+    --editor-missing-text-color: #ffda6a;
+  }
+}
+
+.editor-root {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.editor-textarea-wrapper {
+  display: grid;
+  width: 100%;
+}
+
+/* Lexical PlainTextPlugin renders contenteditable and placeholder wrapper as direct children */
+.editor-textarea-wrapper > div {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+/* Placeholder wrapper sits behind contenteditable, never intercepts events, serves as positioning context for span */
+.editor-textarea-wrapper > div[aria-hidden] {
+  z-index: 0;
+  pointer-events: none;
+  position: relative;
+}
+
+/* Contenteditable sits above placeholder for interaction */
+.editor-textarea {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: var(--editor-min-height);
+  padding: var(--editor-padding);
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line-height);
+  font-family: inherit;
+  color: var(--editor-text-color);
+  background: var(--editor-bg-color);
+  border: 1px solid var(--editor-border-color);
+  border-radius: var(--editor-border-radius);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  text-align: left;
+}
+
+/* Placeholder absolutely positioned within its wrapper div — matches contenteditable padding exactly */
+.editor-placeholder {
+  position: absolute;
+  padding: var(--editor-padding);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  color: var(--editor-placeholder-color);
+  pointer-events: none;
+  user-select: none;
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line-height);
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.editor-textarea:focus {
+  border-color: var(--editor-border-focus-color);
+  box-shadow: var(--editor-focus-shadow);
+}
+
+/* Variable node style - inline pill appearance */
+.variable-node {
+  display: inline;
+  color: inherit;
+  font-weight: normal;
+}
+
+.variable-node .variable-label {
+  display: inline;
+  background-color: var(--editor-highlight-bg);
+  color: var(--editor-highlight-text-color);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  user-select: auto;
+  white-space: nowrap;
+}
+
+.variable-node .variable-label:hover {
+  background-color: var(--editor-highlight-hover-bg);
+}
+
+/* Missing variable style - yellow warning indicator */
+.variable-node .variable-label-missing {
+  display: inline;
+  background-color: var(--editor-missing-bg);
+  color: var(--editor-missing-text-color);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: nowrap;
+  border: 1px solid var(--editor-border-missing-color);
+}
+
+.variable-node .missing-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  background-color: var(--editor-border-missing-color);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
+.variable-node .missing-value {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Typeahead menu style */
+.typeahead-menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 200px;
+  max-height: 240px;
+  background: var(--editor-menu-bg-color);
+  border: 1px solid var(--editor-menu-border-color);
+  border-radius: var(--editor-border-radius);
+  box-shadow: var(--editor-menu-shadow);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.typeahead-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: var(--editor-font-size);
+  color: var(--editor-menu-item-text-color);
+}
+
+.typeahead-item.selected {
+  background-color: var(--editor-menu-item-selected-bg);
+}
+
+.typeahead-item:hover {
+  background-color: var(--editor-menu-item-hover-bg);
+}
