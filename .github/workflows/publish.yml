@@ -27,6 +27,7 @@ jobs:
       - name: install-dependencies
         run: |
           npm i 
+          npx playwright install
       - name: test
         run: |
           npm test
