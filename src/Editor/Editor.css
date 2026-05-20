@@ -234,34 +234,36 @@
   overflow-y: auto;
 }
 
-.typeahead-item {
+.typeahead-item > button {
   padding: 6px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   font-size: var(--editor-font-size);
   color: var(--editor-menu-item-text-color);
+  width: 100%;
+  border: none;
 }
 
-.typeahead-item.selected {
+.typeahead-item > button.selected {
   background-color: var(--editor-menu-item-selected-bg);
 }
 
-.typeahead-item:hover {
+.typeahead-item > button:hover {
   background-color: var(--editor-menu-item-hover-bg);
 }
 
 /* Dynamic "create new" option style */
-.typeahead-item.dynamic-option {
+.typeahead-item > button.dynamic-option {
   border-top: 1px solid var(--editor-menu-border-color);
   background-color: var(--editor-menu-item-selected-bg);
 }
 
-.typeahead-item.dynamic-option:hover {
+.typeahead-item > button.dynamic-option:hover {
   background-color: var(--editor-menu-item-selected-bg);
 }
 
-.typeahead-item.dynamic-option.selected {
+.typeahead-item > button.dynamic-option.selected {
   background-color: var(--editor-menu-item-selected-bg);
 }
 
@@ -279,4 +281,7 @@
 .typeahead-item.dynamic-option .option-label {
   color: var(--editor-highlight-text-color);
   font-weight: 500;
+}
+ul {
+  padding-left: 0;
 }

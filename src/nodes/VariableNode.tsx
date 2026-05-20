@@ -58,7 +58,7 @@ function VariableComponent({
       </span>
     );
   }
-  return <span className="variable-label">{item.label}</span>;
+  return <span className="variable-label variable-label-default">{item.label}</span>;
 }
 
 // VariableNode class - extends DecoratorNode for React component rendering

@@ -305,7 +305,6 @@ export default function VariablePlugin({
                 return (
                   <li
                     key={option.key}
-                    id={`typeahead-item-${index}`}
                     ref={option.setRefElement}
                     tabIndex={-1}
                     role="option"
@@ -320,10 +319,12 @@ export default function VariablePlugin({
                       setHighlightedIndex(index);
                     }}
                   >
-                    <span className="option-label">{option.label}</span>
-                    {isDynamic && (
-                      <span className="dynamic-badge">+ 新建变量</span>
-                    )}
+                    <button>
+                      <span className="option-label">{option.label}</span>
+                      {isDynamic && (
+                        <span className="dynamic-badge">+ 新建变量</span>
+                      )}
+                    </button>
                   </li>
                 );
               })}
