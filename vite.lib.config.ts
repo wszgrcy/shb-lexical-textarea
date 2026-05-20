@@ -21,7 +21,7 @@ export default defineConfig({
             '.': {
               import: `./${LIB_NAME}.mjs`,
               require: `./${LIB_NAME}.cjs`,
-              type: './src/Editor/index.d.ts',
+              types: './src/Editor/index.d.ts',
             },
             './variable-serialization': {
               import: `./variable-serialization.mjs`,
