@@ -3,6 +3,7 @@ import type { SerializedEditorState } from 'lexical';
 import {
   simplifyEditorState,
   restoreEditorState,
+  extractVariableItems,
   type SimplifiedState,
 } from './VariableStateSimplifier';
 
@@ -154,10 +155,12 @@ describe('VariableStateSimplifier', () => {
     it('should add default lexical fields when restoring', () => {
       const result = restoreEditorState([[{ text: 'test', type: 'text' }]] as SimplifiedState);
       const paragraph = result.root.children[0] as any;
-      expect(paragraph.direction).toBe('ltr');
+      expect(paragraph.direction).toBe(null);
       expect(paragraph.format).toBe('');
       expect(paragraph.indent).toBe(0);
       expect(paragraph.version).toBe(1);
+      expect(paragraph.textFormat).toBe(0);
+      expect(paragraph.textStyle).toBe('');
 
       const children = paragraph.children;
       expect(children[0]).toEqual({
@@ -264,6 +267,120 @@ describe('VariableStateSimplifier', () => {
       const children = (restored.root.children[0] as any).children;
       expect(children[0].item).toEqual({ label: 'customVar', value: ['field1'], type: 'custom' });
       expect(children[1].item).toEqual({ label: 'count', value: [123, 456] });
+    });
+  });
+
+  describe('extractVariableItems', () => {
+    it('should return empty arrays for empty state', () => {
+      const result = extractVariableItems([] as SimplifiedState);
+      expect(result).toEqual({ all: [], default: [], custom: [] });
+    });
+
+    it('should return empty arrays when no variables exist', () => {
+      const state = createSerializedState([
+        { children: [{ text: 'Hello World' }] },
+        { children: [{ text: 'No variables here' }] },
+      ]);
+      const simplified = simplifyEditorState(state);
+      const result = extractVariableItems(simplified);
+      expect(result).toEqual({ all: [], default: [], custom: [] });
+    });
+
+    it('should extract all variable items', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { text: 'Dear ' },
+            { type: 'variable', item: { label: 'userName', value: ['userName'] } },
+            { text: ', your order ' },
+            { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+            { text: ' is ready.' },
+          ],
+        },
+      ]);
+      const simplified = simplifyEditorState(state);
+      const result = extractVariableItems(simplified);
+
+      expect(result.all).toHaveLength(2);
+      expect(result.all[0]).toEqual({ label: 'userName', value: ['userName'] });
+      expect(result.all[1]).toEqual({ label: 'orderId', value: ['orderId'] });
+    });
+
+    it('should separate default and custom variables by type', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { type: 'variable', item: { label: 'userName', value: ['userName'], type: 'default' } },
+            { type: 'variable', item: { label: 'customVar', value: ['field1'], type: 'custom' } },
+            { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+          ],
+        },
+      ]);
+      const simplified = simplifyEditorState(state);
+      const result = extractVariableItems(simplified);
+
+      expect(result.all).toHaveLength(3);
+      expect(result.default).toHaveLength(1);
+      expect(result.default[0]).toEqual({ label: 'userName', value: ['userName'], type: 'default' });
+      expect(result.custom).toHaveLength(1);
+      expect(result.custom[0]).toEqual({ label: 'customVar', value: ['field1'], type: 'custom' });
+    });
+
+    it('should handle variables without type field (treated as neither default nor custom)', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { type: 'variable', item: { label: 'noTypeVar', value: ['value1'] } },
+            { type: 'variable', item: { label: 'defaultVar', value: ['value2'], type: 'default' } },
+          ],
+        },
+      ]);
+      const simplified = simplifyEditorState(state);
+      const result = extractVariableItems(simplified);
+
+      expect(result.all).toHaveLength(2);
+      expect(result.default).toHaveLength(1);
+      expect(result.custom).toHaveLength(0);
+    });
+
+    it('should extract variables from multiple paragraphs', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { type: 'variable', item: { label: 'var1', value: ['a'], type: 'default' } },
+          ],
+        },
+        { children: [{ text: 'middle paragraph with no variables' }] },
+        {
+          children: [
+            { text: 'Total: $' },
+            { type: 'variable', item: { label: 'var2', value: [123], type: 'custom' } },
+          ],
+        },
+      ]);
+      const simplified = simplifyEditorState(state);
+      const result = extractVariableItems(simplified);
+
+      expect(result.all).toHaveLength(2);
+      expect(result.default).toHaveLength(1);
+      expect(result.custom).toHaveLength(1);
+      expect(result.default[0].label).toBe('var1');
+      expect(result.custom[0].label).toBe('var2');
+    });
+
+    it('should preserve variable metadata including numeric values', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { type: 'variable', item: { label: 'count', value: [123, 456], type: 'default' } },
+          ],
+        },
+      ]);
+      const simplified = simplifyEditorState(state);
+      const result = extractVariableItems(simplified);
+
+      expect(result.default).toHaveLength(1);
+      expect(result.default[0]).toEqual({ label: 'count', value: [123, 456], type: 'default' });
     });
   });
 });

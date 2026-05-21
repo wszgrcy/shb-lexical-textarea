@@ -1,8 +1,11 @@
 import type {
   SerializedEditorState,
   SerializedLexicalNode,
+  SerializedParagraphNode,
   SerializedRootNode,
+  SerializedTextNode,
 } from 'lexical';
+import type { SerializedVariableNode } from './VariableNode';
 
 /**
  * A simplified text node in the flattened state.
@@ -77,13 +80,13 @@ export function simplifyEditorState(
 ): SimplifiedState {
   const result: SimplifiedState = [];
 
-  const rootData = (state as any).root;
+  const rootData = state.root;
   if (!rootData || !Array.isArray(rootData.children)) return result;
 
   for (const paragraph of rootData.children) {
     if (typeof paragraph !== 'object' || paragraph === null) continue;
 
-    const children = (paragraph as any).children;
+    const children = (paragraph as SerializedParagraphNode).children;
     if (!Array.isArray(children)) continue;
 
     const simpleParagraph: SimpleParagraph = [];
@@ -96,7 +99,7 @@ export function simplifyEditorState(
       if (nodeType === 'text') {
         // Text node: keep only text and type
         const textNode: SimpleTextNode = {
-          text: (child as any).text,
+          text: (child as SerializedTextNode).text,
           type: 'text',
         };
         simpleParagraph.push(textNode);
@@ -104,7 +107,7 @@ export function simplifyEditorState(
         // Variable node: keep only type and item
         const variableNode: SimpleVariableNode = {
           type: 'variable',
-          item: (child as any).item,
+          item: (child as SerializedVariableNode).item,
         };
         simpleParagraph.push(variableNode);
       }
@@ -115,6 +118,37 @@ export function simplifyEditorState(
   }
 
   return result;
+}
+
+/**
+ * Extract all variable items from a SimplifiedState, grouped by type.
+ *
+ * @param simplified - The 2D array state to extract from
+ * @returns An object with { all, default, custom } arrays of variable item objects
+ */
+export function extractVariableItems(simplified: SimplifiedState): {
+  all: SimpleVariableNode['item'][];
+  default: SimpleVariableNode['item'][];
+  custom: SimpleVariableNode['item'][];
+} {
+  const all: SimpleVariableNode['item'][] = [];
+  const def: SimpleVariableNode['item'][] = [];
+  const cus: SimpleVariableNode['item'][] = [];
+
+  for (const paragraph of simplified) {
+    for (const node of paragraph) {
+      if (isSimpleVariableNode(node)) {
+        all.push(node.item);
+        if (node.item.type === 'default') {
+          def.push(node.item);
+        } else if (node.item.type === 'custom') {
+          cus.push(node.item);
+        }
+      }
+    }
+  }
+
+  return { all, default: def, custom: cus };
 }
 
 /**
@@ -158,10 +192,12 @@ export function restoreEditorState(
       paragraphs.push({
         type: 'paragraph',
         version: 1,
-        direction: 'ltr' as const,
+        direction: null,
         format: '',
         indent: 0,
         children,
+        textFormat: 0,
+        textStyle: '',
       } as SerializedLexicalNode);
     }
   }
@@ -170,7 +206,7 @@ export function restoreEditorState(
     root: {
       type: 'root',
       version: 1,
-      direction: 'ltr' as const,
+      direction: null,
       format: '',
       indent: 0,
       children: paragraphs,
