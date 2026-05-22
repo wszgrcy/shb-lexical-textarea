@@ -6,6 +6,7 @@ import type {
   SerializedTextNode,
 } from 'lexical';
 import type { SerializedVariableNode } from './VariableNode';
+import type { VariableResolver } from './VariableSerialization';
 
 /**
  * A simplified text node in the flattened state.
@@ -157,6 +158,41 @@ export function extractVariableItems(simplified: SimplifiedState): {
  * @param simplified - The 2D array state to restore
  * @returns A Lexical serialized editor state
  */
+/**
+ * Serialize a SimplifiedState to a plain string by applying a custom variable resolver.
+ *
+ * This is the complement of `simplifyEditorState`: together they are equivalent to
+ * `serializeTemplate` from VariableSerialization.tsx.
+ *
+ * @param simplified - The 2D array state to serialize.
+ * @param resolver - A function that resolves each variable node to a string.
+ * @returns The serialized plain text string with all variables substituted.
+ */
+export function serializeSimplifiedState(
+  simplified: SimplifiedState,
+  resolver: VariableResolver,
+): string {
+  let result = '';
+
+  for (let i = 0; i < simplified.length; i++) {
+    const paragraph = simplified[i];
+
+    for (const node of paragraph) {
+      if (isSimpleTextNode(node)) {
+        result += node.text;
+      } else if (isSimpleVariableNode(node)) {
+        result += resolver(node.item);
+      }
+    }
+
+    // Add newline after each paragraph (except potentially the last one if empty,
+    // but we follow serializeTemplate behavior: non-root elements get a newline)
+    result += '\n';
+  }
+
+  return result;
+}
+
 export function restoreEditorState(
   simplified: SimplifiedState,
 ): SerializedEditorState<SerializedLexicalNode> {

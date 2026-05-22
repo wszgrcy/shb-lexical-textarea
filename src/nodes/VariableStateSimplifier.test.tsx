@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import type { SerializedEditorState } from 'lexical';
+import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import { serializeTemplate } from './VariableSerialization';
 import {
   simplifyEditorState,
   restoreEditorState,
   extractVariableItems,
+  serializeSimplifiedState,
   type SimplifiedState,
 } from './VariableStateSimplifier';
 
@@ -54,13 +56,13 @@ describe('VariableStateSimplifier', () => {
 
     it('should handle state with missing root or children', () => {
       expect(simplifyEditorState({} as SerializedEditorState)).toEqual([]);
-      expect(simplifyEditorState({ root: {} } as SerializedEditorState)).toEqual([]);
+      expect(
+        simplifyEditorState({ root: {} } as SerializedEditorState),
+      ).toEqual([]);
     });
 
     it('should keep only essential fields and strip defaults', () => {
-      const state = createSerializedState([
-        { children: [{ text: 'Hello ' }] },
-      ]);
+      const state = createSerializedState([{ children: [{ text: 'Hello ' }] }]);
       const result = simplifyEditorState(state);
       const textNode = result[0][0];
       expect(textNode).toEqual({ text: 'Hello ', type: 'text' });
@@ -69,7 +71,11 @@ describe('VariableStateSimplifier', () => {
       expect(textNode).not.toHaveProperty('format');
 
       const stateWithVar = createSerializedState([
-        { children: [{ type: 'variable', item: { label: 'var1', value: ['var1'] } }] },
+        {
+          children: [
+            { type: 'variable', item: { label: 'var1', value: ['var1'] } },
+          ],
+        },
       ]);
       const resultWithVar = simplifyEditorState(stateWithVar);
       expect(resultWithVar[0][0]).not.toHaveProperty('version');
@@ -80,7 +86,10 @@ describe('VariableStateSimplifier', () => {
       const state = createSerializedState([
         {
           children: [
-            { type: 'variable', item: { label: 'customVar', value: ['field1'], type: 'custom' } },
+            {
+              type: 'variable',
+              item: { label: 'customVar', value: ['field1'], type: 'custom' },
+            },
             { type: 'variable', item: { label: 'count', value: [123, 456] } },
           ],
         },
@@ -114,9 +123,15 @@ describe('VariableStateSimplifier', () => {
         {
           children: [
             { text: 'Dear ' },
-            { type: 'variable', item: { label: 'userName', value: ['userName'] } },
+            {
+              type: 'variable',
+              item: { label: 'userName', value: ['userName'] },
+            },
             { text: ', your order ' },
-            { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+            {
+              type: 'variable',
+              item: { label: 'orderId', value: ['orderId'] },
+            },
             { text: ' is ready.' },
           ],
         },
@@ -124,7 +139,10 @@ describe('VariableStateSimplifier', () => {
         {
           children: [
             { text: 'Total: $' },
-            { type: 'variable', item: { label: 'totalAmount', value: ['total'] } },
+            {
+              type: 'variable',
+              item: { label: 'totalAmount', value: ['total'] },
+            },
           ],
         },
       ]);
@@ -132,15 +150,25 @@ describe('VariableStateSimplifier', () => {
       expect(result).toHaveLength(3);
       expect(result[0]).toHaveLength(5);
       expect(result[0][0]).toEqual({ text: 'Dear ', type: 'text' });
-      expect(result[0][1]).toEqual({ type: 'variable', item: { label: 'userName', value: ['userName'] } });
-      expect(result[1]).toEqual([{ text: 'Thank you for your purchase!', type: 'text' }]);
-      expect(result[2][1]).toEqual({ type: 'variable', item: { label: 'totalAmount', value: ['total'] } });
+      expect(result[0][1]).toEqual({
+        type: 'variable',
+        item: { label: 'userName', value: ['userName'] },
+      });
+      expect(result[1]).toEqual([
+        { text: 'Thank you for your purchase!', type: 'text' },
+      ]);
+      expect(result[2][1]).toEqual({
+        type: 'variable',
+        item: { label: 'totalAmount', value: ['total'] },
+      });
     });
   });
 
   describe('restoreEditorState', () => {
     it('should restore an empty state', () => {
-      expect(restoreEditorState([] as SimplifiedState).root.children).toHaveLength(0);
+      expect(
+        restoreEditorState([] as SimplifiedState).root.children,
+      ).toHaveLength(0);
     });
 
     it('should skip empty sub-arrays and not create empty paragraphs', () => {
@@ -153,7 +181,9 @@ describe('VariableStateSimplifier', () => {
     });
 
     it('should add default lexical fields when restoring', () => {
-      const result = restoreEditorState([[{ text: 'test', type: 'text' }]] as SimplifiedState);
+      const result = restoreEditorState([
+        [{ text: 'test', type: 'text' }],
+      ] as SimplifiedState);
       const paragraph = result.root.children[0] as any;
       expect(paragraph.direction).toBe(null);
       expect(paragraph.format).toBe('');
@@ -164,8 +194,13 @@ describe('VariableStateSimplifier', () => {
 
       const children = paragraph.children;
       expect(children[0]).toEqual({
-        type: 'text', version: 1, text: 'test',
-        detail: 0, format: 0, mode: 'normal', style: '',
+        type: 'text',
+        version: 1,
+        text: 'test',
+        detail: 0,
+        format: 0,
+        mode: 'normal',
+        style: '',
       });
     });
 
@@ -173,7 +208,10 @@ describe('VariableStateSimplifier', () => {
       const result = restoreEditorState([
         [
           { text: 'Hello ', type: 'text' },
-          { type: 'variable', item: { label: 'customVar', value: ['field1'], type: 'custom' } },
+          {
+            type: 'variable',
+            item: { label: 'customVar', value: ['field1'], type: 'custom' },
+          },
           { type: 'variable', item: { label: 'count', value: [123, 456] } },
           { text: '!', type: 'text' },
         ],
@@ -208,9 +246,15 @@ describe('VariableStateSimplifier', () => {
         {
           children: [
             { text: 'Dear ' },
-            { type: 'variable', item: { label: 'userName', value: ['userName'] } },
+            {
+              type: 'variable',
+              item: { label: 'userName', value: ['userName'] },
+            },
             { text: ', your order ' },
-            { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+            {
+              type: 'variable',
+              item: { label: 'orderId', value: ['orderId'] },
+            },
             { text: ' is ready.' },
           ],
         },
@@ -218,7 +262,10 @@ describe('VariableStateSimplifier', () => {
         {
           children: [
             { text: 'Total: $' },
-            { type: 'variable', item: { label: 'totalAmount', value: ['total'] } },
+            {
+              type: 'variable',
+              item: { label: 'totalAmount', value: ['total'] },
+            },
           ],
         },
       ]);
@@ -230,7 +277,9 @@ describe('VariableStateSimplifier', () => {
       expect(restored.root.children).toHaveLength(4);
 
       // Verify text-only paragraph preserved
-      expect((restored.root.children[0] as any).children[0].text).toBe('Hello World');
+      expect((restored.root.children[0] as any).children[0].text).toBe(
+        'Hello World',
+      );
 
       // Verify mixed paragraph with variables
       const p1 = (restored.root.children[1] as any).children;
@@ -258,14 +307,21 @@ describe('VariableStateSimplifier', () => {
       const original = createSerializedState([
         {
           children: [
-            { type: 'variable', item: { label: 'customVar', value: ['field1'], type: 'custom' } },
+            {
+              type: 'variable',
+              item: { label: 'customVar', value: ['field1'], type: 'custom' },
+            },
             { type: 'variable', item: { label: 'count', value: [123, 456] } },
           ],
         },
       ]);
       const restored = restoreEditorState(simplifyEditorState(original));
       const children = (restored.root.children[0] as any).children;
-      expect(children[0].item).toEqual({ label: 'customVar', value: ['field1'], type: 'custom' });
+      expect(children[0].item).toEqual({
+        label: 'customVar',
+        value: ['field1'],
+        type: 'custom',
+      });
       expect(children[1].item).toEqual({ label: 'count', value: [123, 456] });
     });
   });
@@ -291,9 +347,15 @@ describe('VariableStateSimplifier', () => {
         {
           children: [
             { text: 'Dear ' },
-            { type: 'variable', item: { label: 'userName', value: ['userName'] } },
+            {
+              type: 'variable',
+              item: { label: 'userName', value: ['userName'] },
+            },
             { text: ', your order ' },
-            { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+            {
+              type: 'variable',
+              item: { label: 'orderId', value: ['orderId'] },
+            },
             { text: ' is ready.' },
           ],
         },
@@ -310,9 +372,18 @@ describe('VariableStateSimplifier', () => {
       const state = createSerializedState([
         {
           children: [
-            { type: 'variable', item: { label: 'userName', value: ['userName'], type: 'default' } },
-            { type: 'variable', item: { label: 'customVar', value: ['field1'], type: 'custom' } },
-            { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+            {
+              type: 'variable',
+              item: { label: 'userName', value: ['userName'], type: 'default' },
+            },
+            {
+              type: 'variable',
+              item: { label: 'customVar', value: ['field1'], type: 'custom' },
+            },
+            {
+              type: 'variable',
+              item: { label: 'orderId', value: ['orderId'] },
+            },
           ],
         },
       ]);
@@ -321,17 +392,31 @@ describe('VariableStateSimplifier', () => {
 
       expect(result.all).toHaveLength(3);
       expect(result.default).toHaveLength(1);
-      expect(result.default[0]).toEqual({ label: 'userName', value: ['userName'], type: 'default' });
+      expect(result.default[0]).toEqual({
+        label: 'userName',
+        value: ['userName'],
+        type: 'default',
+      });
       expect(result.custom).toHaveLength(1);
-      expect(result.custom[0]).toEqual({ label: 'customVar', value: ['field1'], type: 'custom' });
+      expect(result.custom[0]).toEqual({
+        label: 'customVar',
+        value: ['field1'],
+        type: 'custom',
+      });
     });
 
     it('should handle variables without type field (treated as neither default nor custom)', () => {
       const state = createSerializedState([
         {
           children: [
-            { type: 'variable', item: { label: 'noTypeVar', value: ['value1'] } },
-            { type: 'variable', item: { label: 'defaultVar', value: ['value2'], type: 'default' } },
+            {
+              type: 'variable',
+              item: { label: 'noTypeVar', value: ['value1'] },
+            },
+            {
+              type: 'variable',
+              item: { label: 'defaultVar', value: ['value2'], type: 'default' },
+            },
           ],
         },
       ]);
@@ -347,14 +432,20 @@ describe('VariableStateSimplifier', () => {
       const state = createSerializedState([
         {
           children: [
-            { type: 'variable', item: { label: 'var1', value: ['a'], type: 'default' } },
+            {
+              type: 'variable',
+              item: { label: 'var1', value: ['a'], type: 'default' },
+            },
           ],
         },
         { children: [{ text: 'middle paragraph with no variables' }] },
         {
           children: [
             { text: 'Total: $' },
-            { type: 'variable', item: { label: 'var2', value: [123], type: 'custom' } },
+            {
+              type: 'variable',
+              item: { label: 'var2', value: [123], type: 'custom' },
+            },
           ],
         },
       ]);
@@ -372,7 +463,10 @@ describe('VariableStateSimplifier', () => {
       const state = createSerializedState([
         {
           children: [
-            { type: 'variable', item: { label: 'count', value: [123, 456], type: 'default' } },
+            {
+              type: 'variable',
+              item: { label: 'count', value: [123, 456], type: 'default' },
+            },
           ],
         },
       ]);
@@ -380,7 +474,267 @@ describe('VariableStateSimplifier', () => {
       const result = extractVariableItems(simplified);
 
       expect(result.default).toHaveLength(1);
-      expect(result.default[0]).toEqual({ label: 'count', value: [123, 456], type: 'default' });
+      expect(result.default[0]).toEqual({
+        label: 'count',
+        value: [123, 456],
+        type: 'default',
+      });
+    });
+  });
+
+  describe('serializeSimplifiedState', () => {
+    it('should return empty string for empty state', () => {
+      const simplified = [] as SimplifiedState;
+      const result = serializeSimplifiedState(simplified, () => 'resolver');
+      expect(result).toBe('');
+    });
+
+    it('should concatenate text nodes', () => {
+      const simplified = [
+        [
+          { text: 'Hello ', type: 'text' },
+          { text: 'World', type: 'text' },
+        ],
+      ] as SimplifiedState;
+      const result = serializeSimplifiedState(simplified, () => '');
+      expect(result).toBe('Hello World\n');
+    });
+
+    it('should resolve variables using the resolver function', () => {
+      const simplified = [
+        [
+          { text: 'Dear ', type: 'text' },
+          {
+            type: 'variable',
+            item: { label: 'userName', value: ['userName'] },
+          },
+          { text: '!', type: 'text' },
+        ],
+      ] as SimplifiedState;
+      const result = serializeSimplifiedState(
+        simplified,
+        (item) => `[${item.label}]`,
+      );
+      expect(result).toBe('Dear [userName]!\n');
+    });
+
+    it('should handle multiple paragraphs with newlines', () => {
+      const simplified = [
+        [{ text: 'Line 1', type: 'text' }],
+        [{ text: 'Line 2', type: 'text' }],
+        [{ text: 'Line 3', type: 'text' }],
+      ] as SimplifiedState;
+      const result = serializeSimplifiedState(simplified, () => '');
+      expect(result).toBe('Line 1\nLine 2\nLine 3\n');
+    });
+
+    it('should handle empty paragraphs', () => {
+      const simplified = [
+        [{ text: 'Content', type: 'text' }],
+        [],
+        [{ text: 'More', type: 'text' }],
+      ] as SimplifiedState;
+      const result = serializeSimplifiedState(simplified, () => '');
+      expect(result).toBe('Content\n\nMore\n');
+    });
+
+    it('should pass variable metadata to resolver', () => {
+      const simplified = [
+        [
+          {
+            type: 'variable',
+            item: { label: 'customVar', value: ['field1'], type: 'custom' },
+          },
+        ],
+      ] as SimplifiedState;
+      let receivedItem: any;
+      serializeSimplifiedState(simplified, (item) => {
+        receivedItem = item;
+        return item.label;
+      });
+      expect(receivedItem).toEqual({
+        label: 'customVar',
+        value: ['field1'],
+        type: 'custom',
+      });
+    });
+
+    it('should handle number values in variable items', () => {
+      const simplified = [
+        [{ type: 'variable', item: { label: 'count', value: [123, 456] } }],
+      ] as SimplifiedState;
+      const result = serializeSimplifiedState(
+        simplified,
+        (item) => `val:${item.value.join(',')}`,
+      );
+      expect(result).toBe('val:123,456\n');
+    });
+
+    it('should handle mixed content across multiple paragraphs', () => {
+      const simplified = [
+        [
+          { text: 'Dear ', type: 'text' },
+          {
+            type: 'variable',
+            item: { label: 'userName', value: ['userName'] },
+          },
+          { text: ', your order ', type: 'text' },
+          { type: 'variable', item: { label: 'orderId', value: ['orderId'] } },
+          { text: ' is ready.', type: 'text' },
+        ],
+        [{ text: 'Thank you!', type: 'text' }],
+        [
+          { text: 'Total: $', type: 'text' },
+          {
+            type: 'variable',
+            item: { label: 'totalAmount', value: ['total'] },
+          },
+        ],
+      ] as SimplifiedState;
+
+      const result = serializeSimplifiedState(
+        simplified,
+        (item) => `{${item.label}}`,
+      );
+      expect(result).toBe(
+        'Dear {userName}, your order {orderId} is ready.\nThank you!\nTotal: ${totalAmount}\n',
+      );
+    });
+  });
+
+  describe('roundtrip: simplify -> serializeSimplifiedState == serializeTemplate', () => {
+    it('should produce identical output to serializeTemplate for text-only content', () => {
+      const state = createSerializedState([
+        { children: [{ text: 'Line one' }] },
+        { children: [{ text: 'Line two' }] },
+      ]);
+      const resolver = (item: {
+        label: string;
+        value: (number | string)[];
+        type?: string;
+      }) => `{${item.label}}`;
+      const simplified = simplifyEditorState(state);
+      const viaSimplified = serializeSimplifiedState(simplified, resolver);
+      const viaDirect = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        resolver,
+      );
+      expect(viaSimplified).toBe(viaDirect);
+    });
+
+    it('should produce identical output to serializeTemplate for mixed content', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { text: 'Dear ' },
+            {
+              type: 'variable',
+              item: { label: 'userName', value: ['userName'] },
+            },
+            { text: ', order ', type: '' },
+            {
+              type: 'variable',
+              item: { label: 'orderId', value: ['orderId'] },
+            },
+            { text: ' done.', type: '' },
+          ],
+        },
+        { children: [{ text: 'Thanks!' }] },
+      ]);
+      const resolver = (item: {
+        label: string;
+        value: (number | string)[];
+        type?: string;
+      }) => `[${item.label}]`;
+      const simplified = simplifyEditorState(state);
+      const viaSimplified = serializeSimplifiedState(simplified, resolver);
+      const viaDirect = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        resolver,
+      );
+      expect(viaSimplified).toBe(viaDirect);
+    });
+
+    it('should produce identical output to serializeTemplate for empty paragraphs', () => {
+      const state = createSerializedState([
+        { children: [{ text: 'Content' }] },
+        { children: [] },
+        { children: [{ text: 'More' }] },
+      ]);
+      const resolver = () => '';
+      const simplified = simplifyEditorState(state);
+      const viaSimplified = serializeSimplifiedState(simplified, resolver);
+      const viaDirect = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        resolver,
+      );
+      expect(viaSimplified).toBe(viaDirect);
+    });
+
+    it('should produce identical output for variables with custom type', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { text: 'Custom: ' },
+            {
+              type: 'variable',
+              item: { label: 'customVar', value: ['field1'], type: 'custom' },
+            },
+            { text: ' | Default: ' },
+            {
+              type: 'variable',
+              item: { label: 'defaultVar', value: ['value'], type: 'default' },
+            },
+          ],
+        },
+      ]);
+      const resolver = (item: {
+        label: string;
+        value: (number | string)[];
+        type?: string;
+      }) => `${item.type}:${item.label}`;
+      const simplified = simplifyEditorState(state);
+      const viaSimplified = serializeSimplifiedState(simplified, resolver);
+      const viaDirect = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        resolver,
+      );
+      expect(viaSimplified).toBe(viaDirect);
+    });
+
+    it('should handle completely empty state', () => {
+      const state = createSerializedState([]);
+      const resolver = () => 'x';
+      const simplified = simplifyEditorState(state);
+      const viaSimplified = serializeSimplifiedState(simplified, resolver);
+      const viaDirect = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        resolver,
+      );
+      expect(viaSimplified).toBe(viaDirect);
+    });
+
+    it('should produce identical output with numeric variable values', () => {
+      const state = createSerializedState([
+        {
+          children: [
+            { text: 'Count: ' },
+            { type: 'variable', item: { label: 'count', value: [123, 456] } },
+          ],
+        },
+      ]);
+      const resolver = (item: {
+        label: string;
+        value: (number | string)[];
+        type?: string;
+      }) => item.value.join(',');
+      const simplified = simplifyEditorState(state);
+      const viaSimplified = serializeSimplifiedState(simplified, resolver);
+      const viaDirect = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        resolver,
+      );
+      expect(viaSimplified).toBe(viaDirect);
     });
   });
 });
