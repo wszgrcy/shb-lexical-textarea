@@ -36,6 +36,10 @@ function resolveVariable(item: {
 }
 
 function App() {
+  const disableVariablePlugin = new URLSearchParams(window.location.search).get(
+    'disableVariablePlugin',
+  ) === 'true';
+
   const [editorState, setEditorState] =
     useState<SerializedEditorState<SerializedLexicalNode> | null>(null);
   const [variables, setVariables] = useState<
@@ -218,6 +222,7 @@ function App() {
         value={editorState || undefined}
         onChange={handleChange}
         variables={variables}
+        disableVariablePlugin={disableVariablePlugin}
         placeholder="输入一些内容... (试试输入 @)"
       />
       {editorState && (

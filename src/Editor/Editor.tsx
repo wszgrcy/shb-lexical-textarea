@@ -25,6 +25,8 @@ export interface EditorProps {
   variables?: VariableEntry[];
   /** Optional custom filter function for filtering variables by query. */
   variableFilter?: VariableFilterFn;
+  /** When true, disables the variable autocomplete plugin. The VariableNode type is still registered. Default: false. */
+  disableVariablePlugin?: boolean;
   /** Placeholder text shown when editor is empty */
   placeholder?: string;
   /** CSS class name(s) applied to the wrapper div */
@@ -42,6 +44,7 @@ export default function Editor({
   onChange,
   variables = [],
   variableFilter,
+  disableVariablePlugin = false,
   placeholder = '',
   className = '',
   minHeight = 120,
@@ -79,7 +82,9 @@ export default function Editor({
             <span className="editor-placeholder">{placeholder}</span>
           }
         />
-        <VariablePlugin variables={variables} variableFilter={variableFilter} />
+        {!disableVariablePlugin && (
+          <VariablePlugin variables={variables} variableFilter={variableFilter} />
+        )}
         {/* Listens to changes and emits JSON state, syncs controlled value back into editor */}
         <ChangeEmitter onStateChange={onChange} value={value} />
       </div>

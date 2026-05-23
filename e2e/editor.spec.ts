@@ -313,4 +313,58 @@ test.describe('Lexical Editor E2E Tests', () => {
     const finalText = await contentEditable.textContent();
     expect(finalText).toContain('userId');
   });
+
+  test('variable plugin should be disabled when disableVariablePlugin is true', async ({ page }) => {
+    await page.goto('http://localhost:5173/?disableVariablePlugin=true');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    const contentEditable = page.locator('[contenteditable="true"]');
+    await contentEditable.click();
+    await page.waitForTimeout(500);
+
+    // Type "@" to try to trigger autocomplete
+    await page.keyboard.type('@');
+    await page.waitForTimeout(1000);
+
+    // Menu should NOT appear because the plugin is disabled
+    const menu = page.locator('.typeahead-menu');
+    await expect(menu).not.toBeVisible();
+  });
+
+  test('variable plugin should work when disableVariablePlugin is false', async ({ page }) => {
+    await page.goto('http://localhost:5173/?disableVariablePlugin=false');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    const contentEditable = page.locator('[contenteditable="true"]');
+    await contentEditable.click();
+    await page.waitForTimeout(500);
+
+    // Type "@" to trigger autocomplete
+    await page.keyboard.type('@user');
+    await page.waitForTimeout(1000);
+
+    // Menu should appear because the plugin is enabled
+    const menu = page.locator('.typeahead-menu');
+    await expect(menu).toBeVisible({ timeout: 5000 });
+  });
+
+  test('variable plugin should be enabled by default (no query param)', async ({ page }) => {
+    await page.goto('http://localhost:5173/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    const contentEditable = page.locator('[contenteditable="true"]');
+    await contentEditable.click();
+    await page.waitForTimeout(500);
+
+    // Type "@" to trigger autocomplete
+    await page.keyboard.type('@user');
+    await page.waitForTimeout(1000);
+
+    // Menu should appear because the plugin is enabled by default
+    const menu = page.locator('.typeahead-menu');
+    await expect(menu).toBeVisible({ timeout: 5000 });
+  });
 });
