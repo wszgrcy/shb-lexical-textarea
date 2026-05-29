@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useCallback, useState, useRef } from 'react';
+import { useMemo, useEffect, useCallback, useState } from 'react';
 import type { JSX } from 'react';
 import type {
   EditorConfig,
