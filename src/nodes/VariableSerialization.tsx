@@ -115,7 +115,11 @@ function findCustomVariablesInNode(
 
   // Check if this is a VariableNode with type === 'custom'
   if (type === 'variable' && node.item) {
-    const item = node.item as { label: string; value: (number | string)[]; type?: string };
+    const item = node.item as {
+      label: string;
+      value: (number | string)[];
+      type?: string;
+    };
     if (item.type === 'custom') {
       results.push({
         label: item.label,
@@ -126,7 +130,9 @@ function findCustomVariablesInNode(
   }
 
   // Recurse into children for ElementNode or Root
-  const children = Array.isArray(node.children) ? node.children : (node as any).children;
+  const children = Array.isArray(node.children)
+    ? node.children
+    : (node as any).children;
   if (Array.isArray(children)) {
     for (const child of children) {
       findCustomVariablesInNode(child as { [key: string]: unknown }, results);

@@ -37,11 +37,14 @@ export default defineConfig({
           repository: {
             url: 'https://github.com/wszgrcy/shb-lexical-textarea',
           },
+          dependencies: {
+            cheerio: '^1.2.0',
+            'fast-equals': '^6.0.0',
+          },
           peerDependencies: {
             '@lexical/history': '^0.44.0',
             '@lexical/react': '^0.44.0',
             '@lexical/rich-text': '^0.44.0',
-            'fast-equals': '^6.0.0',
             lexical: '^0.44.0',
             react: '^19.0.0',
             'react-dom': '^19.0.0',

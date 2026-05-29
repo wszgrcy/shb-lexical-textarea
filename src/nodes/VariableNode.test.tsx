@@ -270,8 +270,6 @@ describe('VariableNode', () => {
         });
       });
     });
-
-
   });
 
   describe('DOM creation', () => {
@@ -344,8 +342,6 @@ describe('VariableNode', () => {
       });
     });
 
-
-
     it('should accept and return type field in item', () => {
       editor.update(() => {
         const node = $createVariableNode({
@@ -411,8 +407,6 @@ describe('VariableNode', () => {
         expect(json.item).toHaveProperty('value');
       });
     });
-
- 
 
     it('should round-trip serialize with type field through editor state', () => {
       editor.update(() => {

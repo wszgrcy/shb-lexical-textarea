@@ -36,9 +36,9 @@ function resolveVariable(item: {
 }
 
 function App() {
-  const disableVariablePlugin = new URLSearchParams(window.location.search).get(
-    'disableVariablePlugin',
-  ) === 'true';
+  const disableVariablePlugin =
+    new URLSearchParams(window.location.search).get('disableVariablePlugin') ===
+    'true';
 
   const [editorState, setEditorState] =
     useState<SerializedEditorState<SerializedLexicalNode> | null>(null);

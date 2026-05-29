@@ -67,7 +67,7 @@ test.describe('Variable suffix editing', () => {
     await expect(suffixInput).not.toBeVisible();
 
     // Verify display updated
-    let textAfterFirstEdit = (await variableNode.textContent()).trim();
+    const textAfterFirstEdit = (await variableNode.textContent()).trim();
     expect(textAfterFirstEdit).toContain('test123');
 
     // Wait for Lexical to stabilize after the update
@@ -94,7 +94,7 @@ test.describe('Variable suffix editing', () => {
     await expect(suffixInput).not.toBeVisible();
 
     // Verify suffix was added
-    let textAfterAdd = (await variableNode.textContent()).trim();
+    const textAfterAdd = (await variableNode.textContent()).trim();
     expect(textAfterAdd).toContain('abc');
 
     // Wait for Lexical to stabilize after the update
@@ -127,7 +127,7 @@ test.describe('Variable suffix editing', () => {
     await suffixInput.press('Enter');
 
     // Verify suffix was added
-    let textAfterAdd = (await variableNode.textContent()).trim();
+    const textAfterAdd = (await variableNode.textContent()).trim();
     expect(textAfterAdd).toContain('cancelme');
 
     // Wait for Lexical to stabilize after the update

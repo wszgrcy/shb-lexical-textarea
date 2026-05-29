@@ -3,7 +3,10 @@ import {
   type SerializedEditorState,
   type SerializedLexicalNode,
 } from 'lexical';
-import { serializeTemplate, findCustomVariables } from './VariableSerialization';
+import {
+  serializeTemplate,
+  findCustomVariables,
+} from './VariableSerialization';
 
 const demoContext: { [key: string]: string } = {
   userId: 'user-123',
@@ -125,7 +128,10 @@ describe('VariableSerialization', () => {
 
     it('should handle empty state', () => {
       const state = { root: { type: 'root', version: 1 } };
-      const result = serializeTemplate(state as SerializedEditorState<SerializedLexicalNode>, () => 'resolver');
+      const result = serializeTemplate(
+        state as SerializedEditorState<SerializedLexicalNode>,
+        () => 'resolver',
+      );
       expect(result).toBe('');
     });
   });
@@ -165,7 +171,11 @@ describe('VariableSerialization', () => {
       ]);
       const result = findCustomVariables(state);
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({ label: 'customVar1', value: ['field1'], type: 'custom' });
+      expect(result[0]).toEqual({
+        label: 'customVar1',
+        value: ['field1'],
+        type: 'custom',
+      });
     });
 
     it('should find multiple custom type variables', () => {
@@ -177,8 +187,16 @@ describe('VariableSerialization', () => {
       ]);
       const result = findCustomVariables(state);
       expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({ label: 'custom1', value: ['a'], type: 'custom' });
-      expect(result[1]).toEqual({ label: 'custom2', value: ['b'], type: 'custom' });
+      expect(result[0]).toEqual({
+        label: 'custom1',
+        value: ['a'],
+        type: 'custom',
+      });
+      expect(result[1]).toEqual({
+        label: 'custom2',
+        value: ['b'],
+        type: 'custom',
+      });
     });
 
     it('should return empty array when no custom variables', () => {
@@ -192,7 +210,9 @@ describe('VariableSerialization', () => {
 
     it('should return empty array for empty state', () => {
       const state = { root: { type: 'root', version: 1 } };
-      const result = findCustomVariables(state as SerializedEditorState<SerializedLexicalNode>);
+      const result = findCustomVariables(
+        state as SerializedEditorState<SerializedLexicalNode>,
+      );
       expect(result).toHaveLength(0);
     });
 
@@ -202,7 +222,11 @@ describe('VariableSerialization', () => {
       ]);
       const result = findCustomVariables(state);
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({ label: 'customCount', value: [123, 456], type: 'custom' });
+      expect(result[0]).toEqual({
+        label: 'customCount',
+        value: [123, 456],
+        type: 'custom',
+      });
     });
 
     it('should recursively find custom variables in nested paragraphs', () => {
@@ -219,7 +243,16 @@ describe('VariableSerialization', () => {
               key: 'p1',
               children: [
                 { type: 'text', text: 'Hello ', version: 1, key: 'k1' },
-                { type: 'variable', version: 1, item: { label: 'customNested', value: ['nested'], type: 'custom' }, key: 'k2' },
+                {
+                  type: 'variable',
+                  version: 1,
+                  item: {
+                    label: 'customNested',
+                    value: ['nested'],
+                    type: 'custom',
+                  },
+                  key: 'k2',
+                },
               ],
             },
           ],
@@ -229,7 +262,9 @@ describe('VariableSerialization', () => {
           version: 1,
         },
       };
-      const result = findCustomVariables(state as SerializedEditorState<SerializedLexicalNode>);
+      const result = findCustomVariables(
+        state as SerializedEditorState<SerializedLexicalNode>,
+      );
       expect(result).toHaveLength(1);
       expect(result[0].label).toBe('customNested');
     });

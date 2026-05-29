@@ -30,12 +30,12 @@ export interface VariableEntry {
 }
 
 /** Type for the dynamically created "new variable" option. */
-export type CustomVariableEntry = {
+export interface CustomVariableEntry {
   label: string;
   value: (number | string)[];
   type: 'custom';
   isDynamic: true;
-};
+}
 
 /** Signature for a custom variable filter function.
  * Receives the current query string (non-null) and the full variables list,
@@ -189,7 +189,7 @@ export default function VariablePlugin({
       );
     }
     // Use custom filter if provided, otherwise fall back to default label-based filtering
-    let filtered = variableFilter
+    const filtered = variableFilter
       ? variableFilter(queryString, variables)
       : variables.filter((entry) =>
           entryLabel(entry).toLowerCase().includes(queryString.toLowerCase()),

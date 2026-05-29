@@ -63,10 +63,12 @@ function VariableComponent({
     return base;
   }, [item.label, item.suffix]);
 
-  // Sync suffix input when suffix prop changes (e.g., after save triggers re-render)
   useEffect(() => {
-    if (isEditing) return; // Don't overwrite while user is typing in edit mode
+    if (isEditing) {
+      return;
+    }
     if (item.suffix && item.suffix.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuffixInput(item.suffix);
     } else {
       setSuffixInput('');

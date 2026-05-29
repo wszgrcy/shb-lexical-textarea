@@ -10,7 +10,11 @@ import { ReactExtension } from '@lexical/react/ReactExtension';
 import { RichTextExtension } from '@lexical/rich-text';
 import { HistoryExtension } from '@lexical/history';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import VariablePlugin, { type VariableEntry, type VariableFilterFn } from './VariablePlugin';
+import VariablePlugin, {
+  type VariableEntry,
+  type VariableFilterFn,
+} from './VariablePlugin';
+import BrToParagraphPlugin from './BrToParagraphPlugin';
 
 import { VariableNode } from '../nodes/VariableNode';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -83,8 +87,12 @@ export default function Editor({
           }
         />
         {!disableVariablePlugin && (
-          <VariablePlugin variables={variables} variableFilter={variableFilter} />
+          <VariablePlugin
+            variables={variables}
+            variableFilter={variableFilter}
+          />
         )}
+        <BrToParagraphPlugin />
         {/* Listens to changes and emits JSON state, syncs controlled value back into editor */}
         <ChangeEmitter onStateChange={onChange} value={value} />
       </div>
