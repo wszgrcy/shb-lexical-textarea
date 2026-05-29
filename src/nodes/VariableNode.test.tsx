@@ -271,15 +271,7 @@ describe('VariableNode', () => {
       });
     });
 
-    it('should support updateItem method', () => {
-      editor.update(() => {
-        const node = $createVariableNode({ label: '旧标签', value: ['old'] });
-        expect(node.getLabel()).toBe('旧标签');
-        node.updateItem({ label: '新标签', value: ['new'] });
-        expect(node.getLabel()).toBe('新标签');
-        expect(node.getValue()).toEqual(['new']);
-      });
-    });
+
   });
 
   describe('DOM creation', () => {
@@ -352,14 +344,7 @@ describe('VariableNode', () => {
       });
     });
 
-    it('should setTextContent update the item', () => {
-      editor.update(() => {
-        const node = $createVariableNode({ label: 'user1', value: ['value1'] });
-        node.setTextContent('user2');
-        expect(node.getLabel()).toBe('user2');
-        expect(node.getValue()).toEqual(['user2']);
-      });
-    });
+
 
     it('should accept and return type field in item', () => {
       editor.update(() => {
@@ -427,18 +412,7 @@ describe('VariableNode', () => {
       });
     });
 
-    it('should updateItem with new type', () => {
-      editor.update(() => {
-        const node = $createVariableNode({ label: 'var1', value: ['v1'] });
-        expect(node.getItem().type).toBeUndefined();
-        node.updateItem({ label: 'var2', value: ['v2'], type: 'custom' });
-        expect(node.getItem()).toEqual({
-          label: 'var2',
-          value: ['v2'],
-          type: 'custom',
-        });
-      });
-    });
+ 
 
     it('should round-trip serialize with type field through editor state', () => {
       editor.update(() => {

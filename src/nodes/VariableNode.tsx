@@ -1,3 +1,4 @@
+import { useMemo, useEffect, useCallback, useState, useRef } from 'react';
 import type { JSX } from 'react';
 import type {
   EditorConfig,
@@ -8,15 +9,20 @@ import type {
 } from 'lexical';
 import { DecoratorNode, $applyNodeReplacement } from 'lexical';
 
-// Variable item format: { label: string; value: (number | string)[]; type?: string }
+// Variable item format: { label: string; value: (number | string)[]; type?: string; suffix?: string }
 // `type` defaults to 'variable' but allows other custom types for extensibility.
+// `suffix` is an optional string of user input directly saved as-is, displayed after the base value with a dot.
+// The full display label = value.join('.') + '.' + suffix (if suffix exists).
+// The original `value` array is immutable — only `suffix` can be edited after creation.
 export interface VariableItem {
   label: string;
   value: (number | string)[];
   type?: string;
+  /** Optional editable suffix string, saved exactly as input by user. */
+  suffix?: string;
 }
 
-// Serialized variable node - stores the item object for persistence
+// Serialized variable node - stores the item object
 export interface SerializedVariableNode extends Omit<
   SerializedLexicalNode,
   'type'
@@ -37,16 +43,86 @@ function flattenValue(arr: (number | string)[]): string {
 function VariableComponent({
   item,
   isMissing,
+  onUpdate,
 }: {
   item: VariableItem;
   isMissing: boolean;
+  /** Called when the suffix value changes (e.g., user types a new suffix). */
+  onUpdate?: (suffix: string) => void;
 }) {
+  // Use state for editing mode (triggers React re-render on changes)
+  const [suffixInput, setSuffixInput] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Compute the display label: original label + current suffix
+  const displayLabel = useMemo(() => {
+    const base = item.label;
+    if (item.suffix && item.suffix.length > 0) {
+      return base + '.' + item.suffix;
+    }
+    return base;
+  }, [item.label, item.suffix]);
+
+  // Sync suffix input when suffix prop changes (e.g., after save triggers re-render)
+  useEffect(() => {
+    if (isEditing) return; // Don't overwrite while user is typing in edit mode
+    if (item.suffix && item.suffix.length > 0) {
+      setSuffixInput(item.suffix);
+    } else {
+      setSuffixInput('');
+    }
+  }, [item.suffix, isEditing]);
+
+  const handleSubmit = useCallback(() => {
+    if (!onUpdate) return;
+    const trimmed = suffixInput.trim();
+    if (trimmed) {
+      onUpdate(trimmed);
+    } else {
+      // Empty input means remove suffix
+      onUpdate('');
+    }
+    setIsEditing(false);
+  }, [suffixInput, onUpdate]);
+
+  const handleBlur = useCallback(() => {
+    // On blur, commit the current input
+    if (isEditing && onUpdate) {
+      const trimmed = suffixInput.trim();
+      if (trimmed) {
+        onUpdate(trimmed);
+      } else {
+        onUpdate('');
+      }
+    }
+    setIsEditing(false);
+  }, [suffixInput, onUpdate, isEditing]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSubmit();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        // Revert: reset input to current suffix value
+        if (item.suffix && item.suffix.length > 0) {
+          setSuffixInput(item.suffix);
+        } else {
+          setSuffixInput('');
+        }
+        setIsEditing(false);
+      }
+    },
+    [handleSubmit, item.suffix],
+  );
+
   // Custom variables (type: 'custom') should never be marked as missing
   if (item.type === 'custom') {
     return (
       <span className="variable-label variable-label-custom">
         <span className="custom-icon">+</span>
-        <span>{item.label}</span>
+        <span>{displayLabel}</span>
       </span>
     );
   }
@@ -54,11 +130,52 @@ function VariableComponent({
     return (
       <span className="variable-label variable-label-missing">
         <span className="missing-icon">?</span>
-        <span className="missing-value">{item.label}</span>
+        <span className="missing-value">{displayLabel}</span>
       </span>
     );
   }
-  return <span className="variable-label variable-label-default">{item.label}</span>;
+
+  // Always editable: show input for suffix when clicked
+  if (!isEditing) {
+    return (
+      <span
+        className="variable-label variable-label-editable"
+        onClick={(e) => {
+          e.preventDefault();
+          setIsEditing(true);
+        }}
+        title="点击添加后缀"
+      >
+        <span>{displayLabel}</span>
+        <span className="edit-indicator">+</span>
+      </span>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <span className="variable-label variable-label-editing">
+        <span className="base-value">{displayLabel.split('.')[0]}</span>
+        <input
+          type="text"
+          className="suffix-input"
+          value={suffixInput}
+          onChange={(e) => setSuffixInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          autoFocus
+          placeholder="添加后缀..."
+          title="输入后缀后按回车确认，或按 Escape 取消"
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span className="variable-label variable-label-default">
+      {displayLabel}
+    </span>
+  );
 }
 
 // VariableNode class - extends DecoratorNode for React component rendering
@@ -75,7 +192,10 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
 
   constructor(item: VariableItem, key?: NodeKey) {
     super(key);
-    this.__item = item || { label: '', value: [] };
+    // Always preserve __editable if already stored in __item (from writable copy propagation)
+    // Only delete it if explicitly creating a non-editable node without the flag
+    const baseItem = item || { label: '', value: [] };
+    this.__item = baseItem;
   }
 
   /**
@@ -124,10 +244,39 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
    * Return the React component to render via portal.
    * The outer container DOM element is created by createDOM().
    */
-  decorate(_editor: LexicalEditor, _config: EditorConfig): JSX.Element {
+  decorate(editor: LexicalEditor, _config: EditorConfig): JSX.Element {
     return (
-      <VariableComponent item={this.__item} isMissing={this.__isMissing} />
+      <VariableComponent
+        item={this.__item}
+        isMissing={this.__isMissing}
+        onUpdate={(suffix) => {
+          // Use editor.dispatchUpdate to safely trigger state changes from inside React render
+          editor.update(() => {
+            this.updateSuffix(suffix);
+          });
+        }}
+      />
     );
+  }
+
+  /**
+   * Update the suffix string (for editable nodes).
+   */
+  updateSuffix(suffix: string): this {
+    const self = this.getWritable();
+    self.__item = { ...self.__item, suffix };
+    return self;
+  }
+
+  /**
+   * Get the full display label including suffix.
+   */
+  getFullLabel(): string {
+    const suffix = this.__item.suffix;
+    if (suffix && suffix.length > 0) {
+      return this.__item.label + '.' + suffix;
+    }
+    return this.__item.label;
   }
 
   /**
@@ -142,14 +291,14 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
   }
 
   /**
-   * Get the display label.
+   * Get the display label (original base label, without suffix).
    */
   getLabel(): string {
     return this.__item.label;
   }
 
   /**
-   * Get the variable value as array (used for export).
+   * Get the variable base value as array (used for export lookup).
    */
   getValue(): (number | string)[] {
     return this.__item.value;
@@ -163,17 +312,17 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
   }
 
   /**
-   * Get the flattened value string key for lookup.
+   * Get the flattened base value string key for lookup.
    */
   getValueKey(): string {
     return flattenValue(this.__item.value);
   }
 
   /**
-   * Get the text content (alias for label, for Lexical compatibility).
+   * Get the text content (alias for full label, for Lexical compatibility).
    */
   getTextContent(): string {
-    return this.__item.label;
+    return this.getFullLabel();
   }
 
   /**
@@ -189,24 +338,6 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
 
   isMissing(): boolean {
     return this.__isMissing;
-  }
-
-  /**
-   * Set the variable text (for updates).
-   */
-  setTextContent(text: string): this {
-    const self = this.getWritable();
-    self.__item = { label: text, value: [text] };
-    return self;
-  }
-
-  /**
-   * Update the item with a new VariableItem.
-   */
-  updateItem(item: VariableItem): this {
-    const self = this.getWritable();
-    self.__item = item;
-    return self;
   }
 
   /**
