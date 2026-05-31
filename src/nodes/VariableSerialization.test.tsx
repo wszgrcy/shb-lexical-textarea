@@ -3,6 +3,8 @@ import {
   type SerializedEditorState,
   type SerializedLexicalNode,
 } from 'lexical';
+import { toPath, get } from 'es-toolkit/compat';
+import type { VariableItem } from './VariableNode';
 import {
   serializeTemplate,
   findCustomVariables,
@@ -15,14 +17,19 @@ const demoContext: { [key: string]: string } = {
   'bbb.ccc': 'nested-value',
 };
 
+// Nested object for suffix path testing
+const nestedContext = {
+  xxx: {
+    aa: {
+      bb: 'suffix-resolved-value',
+    },
+  },
+};
+
 describe('VariableSerialization', () => {
   describe('serializeTemplate', () => {
     function createSerializedState(
-      variableItems: {
-        label: string;
-        value: (number | string)[];
-        type?: string;
-      }[],
+      variableItems: VariableItem[],
     ): SerializedEditorState<SerializedLexicalNode> {
       return {
         root: {
@@ -134,15 +141,67 @@ describe('VariableSerialization', () => {
       );
       expect(result).toBe('');
     });
+
+    it('should merge value array with suffix using toPath and get', () => {
+      // value: ['xxx'], suffix: 'aa.bb' should resolve to nestedContext['xxx']['aa']['bb']
+      const state = createSerializedState([
+        { label: 'xxx', value: ['xxx'], suffix: 'aa.bb' },
+      ]);
+      const result = serializeTemplate(state, (item) => {
+        const keyList = toPath(item.suffix || '');
+        const fullKeyList = [...item.value, ...keyList];
+        const resolved = get(nestedContext, fullKeyList);
+        return resolved ?? `{${item.label}}`;
+      });
+      expect(result).toBe('suffix-resolved-value\n');
+    });
+
+    it('should handle value without suffix', () => {
+      const state = createSerializedState([
+        { label: 'userId', value: ['userId'], suffix: undefined },
+      ]);
+      const result = serializeTemplate(state, (item) => {
+        // No suffix, only use value for lookup
+        const key = item.value.map((v) => String(v)).join('.');
+        return demoContext[key];
+      });
+      expect(result).toBe('user-123\n');
+    });
+
+    it('should handle empty suffix (fallback to value-only lookup)', () => {
+      const state = createSerializedState([
+        { label: 'userId', value: ['userId'], suffix: '' },
+      ]);
+      const result = serializeTemplate(state, (item) => {
+        // Empty suffix means fallback to base value lookup
+        if (!item.suffix || item.suffix.length === 0) {
+          const key = item.value.map((v) => String(v)).join('.');
+          return demoContext[key] ?? `{${key}}`;
+        }
+        const keyList = toPath(item.suffix);
+        const fullKeyList = [...item.value, ...keyList];
+        return get(nestedContext, fullKeyList);
+      });
+      expect(result).toBe('user-123\n');
+    });
+
+    it('should handle suffix with single segment', () => {
+      const state = createSerializedState([
+        { label: 'xxx', value: ['xxx'], suffix: 'aa' },
+      ]);
+      const result = serializeTemplate(state, (item) => {
+        const keyList = toPath(item.suffix || '');
+        const fullKeyList = [...item.value, ...keyList];
+        const resolved = get(nestedContext, fullKeyList);
+        return resolved;
+      });
+      expect(result).toBe('[object Object]\n');
+    });
   });
 
   describe('findCustomVariables', () => {
     function createSerializedState(
-      variableItems: {
-        label: string;
-        value: (number | string)[];
-        type?: string;
-      }[],
+      variableItems: VariableItem[],
     ): SerializedEditorState<SerializedLexicalNode> {
       return {
         root: {

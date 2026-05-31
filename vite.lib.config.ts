@@ -40,6 +40,7 @@ export default defineConfig({
           dependencies: {
             cheerio: '^1.2.0',
             'fast-equals': '^6.0.0',
+            'es-toolkit': '^1.47.0',
           },
           peerDependencies: {
             '@lexical/history': '^0.44.0',

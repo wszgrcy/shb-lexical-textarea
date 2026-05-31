@@ -3,6 +3,7 @@ import type {
   SerializedEditorState,
   SerializedLexicalNode,
 } from 'lexical';
+import type { VariableItem } from './VariableNode';
 
 /**
  * Configuration options for custom node type handlers.
@@ -46,11 +47,7 @@ export interface FoundVariable {
  * Receives the serialized VariableItem (with its `type`, `label`, and `value`)
  * and returns the string to use as the resolved output.
  */
-export type VariableResolver = (item: {
-  label: string;
-  value: (number | string)[];
-  type?: string;
-}) => string;
+export type VariableResolver = (item: VariableItem) => string;
 
 /**
  * Serialize a Lexical JSON state to a plain string by applying a custom variable resolver.
