@@ -5,7 +5,7 @@ import type {
   SerializedRootNode,
   SerializedTextNode,
 } from 'lexical';
-import type { SerializedVariableNode } from './VariableNode';
+import type { SerializedVariableNode, VariableItem } from './VariableNode';
 import type { VariableResolver } from './VariableSerialization';
 
 /**
@@ -21,11 +21,7 @@ export interface SimpleTextNode {
  */
 export interface SimpleVariableNode {
   type: 'variable';
-  item: {
-    label: string;
-    value: (number | string)[];
-    type?: string;
-  };
+  item: VariableItem;
 }
 
 /**
